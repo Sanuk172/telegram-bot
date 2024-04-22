@@ -4,7 +4,7 @@ from .db_session import SqlAlchemyBase
 
 
 class Data(SqlAlchemyBase):
-    __tablename__ = 'dates'
+    __tablename__ = 'dates.db'
 
     id = sqlalchemy.Column(sqlalchemy.Integer,
                            primary_key=True, autoincrement=True)

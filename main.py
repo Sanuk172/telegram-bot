@@ -38,9 +38,9 @@ async def on_start(update, context):
 async def help_command(update, context):
     """Отправляет сообщение когда получена команда /help"""
     await update.message.reply_text('''
-/q_and_a - задать вопрос,
-/add_date - добавить дату в календарь(формат(дата, событие)),
-/show_calendar - показать расписание на какой-то день, 
+/q - задать вопрос(формат(/q вопрос)),
+/add - добавить дату в календарь(формат(/add дд.мм.гг, событие)),
+/show_calendar - показать расписание на какой-то день(формат(/show_calendar дд.мм.гг)), 
 /stop.''')
 
 
@@ -54,57 +54,43 @@ async def q_and_a(update, context):
     await update.message.reply_text(text)
 
 
-async def q(update, context):
-    return 1
-
-
-async def add(update, context):
-    return 2
-
-
-async def show(update, context):
-    return 3
-
-
 async def add_date(update, context):
+    dt = Data()
+    db_sess = db_session.create_session()
     user = update.effective_user
     message = update.message.text
-    date = message.split(', ')[:1]
-    event = message.split()[1:]
+    stroka = message.split()[1:]
+    date = str(stroka[0])
+    event = str(' '.join(stroka[1:]))
     print(user.first_name[:1])
-    dt = Data()
     dt.name = str(user.first_name[:1])
     dt.date = date
-    dt.event = event
-    db_sess = db_session.create_session()
+    dt.event = str(event)
     db_sess.add(dt)
     db_sess.commit()
     await update.message.reply_html(
-        rf"Добавил в календарь дату {dt.date} с событием {dt.event}, от пользователя {dt.name}"
+        rf"Добавил в календарь дату {dt.date} с событием '{dt.event}', от пользователя {dt.name}"
     )
 
 
 async def show_calendar(update, context):
-    await update.message.reply_html(
-        rf"показ календаря"
-    )
+    dt = Data()
+    db_sess = db_session.create_session()
+    message = update.message.text
+    date = message.split()[1]
+    await update.message.reply_html(db_sess.query(Data).filter((Data.name == update.effective_user.first_name[:1]) |
+                                                               Data.date == date))
 
 
 def main():
-    db_session.global_init("db/blogs.db")
-    conv_handler = ConversationHandler(
-        states={
-            1: [CommandHandler("q_and_a", q_and_a)],
-            2: [CommandHandler("add_date", add_date)],
-            3: [CommandHandler("show_calendar", show_calendar)]
-        })
+    db_session.global_init("dates.db")
     application = Application.builder().token(BOT_TOKEN).build()
     application.add_handler(CommandHandler("start", on_start))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("stop", stop))
-    application.add_handler(CommandHandler("q", q))
-    application.add_handler(CommandHandler("add", add))
-    application.add_handler(CommandHandler("show", show))
+    application.add_handler(CommandHandler("q", q_and_a))
+    application.add_handler(CommandHandler("add_date", add_date))
+    application.add_handler(CommandHandler("show_calendar", show_calendar))
     application.run_polling()
 
 
