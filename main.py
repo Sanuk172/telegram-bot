@@ -78,8 +78,11 @@ async def show_calendar(update, context):
     db_sess = db_session.create_session()
     message = update.message.text
     date = message.split()[1]
-    await update.message.reply_html(db_sess.query(Data).filter((Data.name == update.effective_user.first_name[:1]) |
-                                                               Data.date == date))
+    event = db_sess.query(Data).filter((Data.name == update.effective_user.first_name[:1]) | Data.date == date)
+    if event:
+        await update.message.reply_text("В этот день у вас", event)
+    else:
+        await update.message.reply_text('На этот день нет никаких событий.')
 
 
 def main():
