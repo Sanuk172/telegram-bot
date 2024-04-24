@@ -39,7 +39,8 @@ async def help_command(update, context):
     """Отправляет сообщение когда получена команда /help"""
     await update.message.reply_text('''
 /q - задать вопрос(формат(/q вопрос)),
-/add - добавить дату в календарь(формат(/add дд.мм.гг, событие)),
+/add_date - добавить дату в календарь(формат(/add дд.мм.гг, событие)),
+/del_date - удалить дату из календаря(формат(/del дд.мм.гг, событие)),
 /show_calendar - показать расписание на какой-то день(формат(/show_calendar дд.мм.гг)), 
 /stop.''')
 
@@ -64,7 +65,7 @@ async def add_date(update, context):
     event = str(' '.join(stroka[1:]))
     print(user.first_name[:1])
     dt.name = str(user.first_name[:1])
-    dt.date = date
+    dt.date = date.split()[0]
     dt.event = str(event)
     db_sess.add(dt)
     db_sess.commit()
@@ -73,16 +74,39 @@ async def add_date(update, context):
     )
 
 
-async def show_calendar(update, context):
+async def del_date(update, context):
     dt = Data()
     db_sess = db_session.create_session()
+    user = update.effective_user
     message = update.message.text
-    date = message.split()[1]
-    event = db_sess.query(Data).filter((Data.name == update.effective_user.first_name[:1]) | Data.date == date)
+    stroka = message.split()[1:]
+    date = str(stroka[0])
+    event = str(' '.join(stroka[1:]))
+    print(user.first_name[:1])
+    row = (db_sess.query(Data).filter(Data.name == user.first_name[:1])
+           .filter(Data.date == date).filter(Data.event == event)).first()
+    db_sess.delete(row)
+    db_sess.commit()
+    await update.message.reply_text(
+        rf"Удалил из календаря дату {date} с событием '{event}', от пользователя {user.first_name[0]}"
+    )
+
+
+async def show_calendar(update, context):
+    db_sess = db_session.create_session()
+    message = update.message.text
+    user = str(update.effective_user.first_name[:1]).split()
+    date = str(message.split()[1]).split()
+    event = db_sess.query(Data.event).filter(Data.name == user[0]).filter(Data.date == date[0]).all()
+    print(date[0], user[0])
+    vivod = []
+    for ev in event:
+        print(ev[0])
+        vivod.append(ev[0])
     if event:
-        await update.message.reply_text("В этот день у вас", event)
+        await update.message.reply_html(f"В этот день у вас {', '.join(vivod)}")
     else:
-        await update.message.reply_text('На этот день нет никаких событий.')
+        await update.message.reply_html('На этот день нет никаких событий.')
 
 
 def main():
@@ -93,6 +117,7 @@ def main():
     application.add_handler(CommandHandler("stop", stop))
     application.add_handler(CommandHandler("q", q_and_a))
     application.add_handler(CommandHandler("add_date", add_date))
+    application.add_handler(CommandHandler("del_date", del_date))
     application.add_handler(CommandHandler("show_calendar", show_calendar))
     application.run_polling()
 
