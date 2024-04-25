@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 async def on_start(update, context):
     """Отправляет сообщение когда получена команда /start"""
-    await update.message.reply_text('Привет я бот, который поможет тебе ответить почти на каждый вопрос!'
+    await update.message.reply_text('Привет я бот учённый, который поможет тебе ответить почти на каждый вопрос!'
                                     ' Для большей информации напиши /help',
                                     reply_markup=ReplyKeyboardMarkup([['/start'], ['/stop'], ['/help']]))
     return 1
@@ -52,6 +52,8 @@ async def stop(update, context):
 
 async def q_and_a(update, context):
     text = account.create_completion(update.message.text, '1', system_prompt='отвечай на русском')
+    user = update.effective_user
+    print(print(user.first_name[:1]))
     await update.message.reply_text(text)
 
 
